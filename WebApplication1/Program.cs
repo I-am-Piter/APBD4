@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
 using WebApplication1.DB;
+using WebApplication1.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,8 +27,48 @@ app.MapGet("/api/zwierze", () =>
 
 app.MapGet("/api/zwierze/{id:int}", (int id) =>
 {
-    var zwierz = DB.Zwierze.FirstOrDefault((zwierz1 => zwierz1.getId() == id));
+    var zwierz = DB.Zwierze.FirstOrDefault((zwierz1 => zwierz1.id == id));
     return Results.Ok(zwierz);
+});
+
+app.MapPost("/api/zwierze", ([FromBody] Zwierz zwierz) =>
+{
+    DB.Zwierze.Add(zwierz);
+    return Results.Created($"/api/zwierze/{zwierz.id}", zwierz);
+});
+
+app.MapPut("/api/zwierze/{id:int}", (int id, [FromBody] Zwierz data) =>
+{
+    var zwierz = DB.Zwierze.FirstOrDefault(zw => zw.id == id);
+    if (zwierz is null) return Results.NotFound($"Zwierz with id {id} not found");
+    
+    zwierz.imie = data.imie;
+    zwierz.kategoria = data.kategoria;
+    zwierz.masa = data.masa;
+    zwierz.kolorsiersci = data.kolorsiersci;
+    return Results.Ok(zwierz);
+});
+
+app.MapDelete("/api/zwierze/{id:int}", (int id) =>
+{
+    var zwierzes = DB.Zwierze.Where(zw => zw.id != id);
+    DB.Zwierze = zwierzes.ToList();
+    return Results.Ok();
+});
+
+app.MapGet("/api/zwierze/{id:int}/wizyty", (int id) =>
+{
+    var zwierz = DB.Zwierze.FirstOrDefault((zwierz1 => zwierz1.id == id));
+    var wizytyZwierzaka = DB.Wizyty.Where(wizyta => wizyta.zwierze == zwierz);
+    return Results.Ok(wizytyZwierzaka);
+});
+
+app.MapPost("/api/zwierze/{id:int}/wizyty", (int id, [FromBody] Wizyta data) =>
+{
+    var zwierz = DB.Zwierze.FirstOrDefault((zwierz1 => zwierz1.id == id));
+    data.zwierze = zwierz;
+    DB.Wizyty.Add(data);
+    return Results.Created($"/api/zwierze/{zwierz.id}/wizyty", data);
 });
 
 app.UseHttpsRedirection();
